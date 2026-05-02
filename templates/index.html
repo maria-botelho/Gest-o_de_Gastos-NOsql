@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Finanças NoSQL - MongoDB</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Gestão de Gastos NoSQL</h1>
+            <p>Utilizador: <strong>{{ usuario.nome }}</strong></p>
+        </header>
+
+        <section class="filter-bar">
+            <div>
+                <label>📅 Mês de Análise:</label>
+                <input type="month" value="{{ ano }}-{{ '%02d'|format(mes) }}" 
+                       onchange="window.location.href='/?mes='+this.value.split('-')[1]+'&ano='+this.value.split('-')[0]">
+            </div>
+            <span>Saldos calculados até {{ mes }}/{{ ano }}</span>
+        </section>
+
+        <section class="account-grid">
+            {% for conta in contas %}
+            <div class="card-conta">
+                <small>{{ conta.tipo }}</small>
+                <h3>{{ conta.nome }}</h3>
+                <p class="{{ 'valor-entrada' if conta.saldo_exibicao >= 0 else 'valor-saida' }}">
+                    R$ {{ "%.2f"|format(conta.saldo_exibicao) }}
+                </p>
+            </div>
+            {% endfor %}
+        </section>
+
+        <section class="card">
+            <h2 id="form-title" style="margin-top:0;">Nova Transação</h2>
+            <form id="transacao-form" action="/add_transacao" method="POST" class="form-group">
+                <input type="hidden" name="usuario_id" value="{{ usuario._id }}">
+                <input type="hidden" name="transacao_id" id="edit-id">
+                
+                <input type="date" name="data" id="edit-data" required>
+                <input type="text" name="descricao" id="edit-desc" placeholder="Ex: Renda" required style="flex: 2;">
+                <input type="number" name="valor" id="edit-valor" step="0.01" placeholder="Valor" required>
+                
+                <select name="tipo" id="edit-tipo">
+                    <option value="saída">Saída</option>
+                    <option value="entrada">Entrada</option>
+                </select>
+
+                <select name="categoria" id="edit-cat">
+                    {% for cat in categorias %}<option value="{{ cat.nome }}">{{ cat.icone }} {{ cat.nome }}</option>{% endfor %}
+                </select>
+
+                <select name="conta_id" id="edit-conta">
+                    {% for c in contas %}<option value="{{ c._id }}">{{ c.nome }}</option>{% endfor %}
+                </select>
+
+                <button type="submit" id="btn-submit" class="btn-submit">Adicionar</button>
+                <button type="button" id="btn-cancel" class="btn-cancel" onclick="location.reload()" style="display:none;">Cancelar</button>
+            </form>
+        </section>
+
+        <section class="grid-dash">
+            <div class="stat-box">
+                <h3>Resumo Financeiro ({{ mes }}/{{ ano }})</h3>
+                {% set ent = dashboard.total_entradas[0].total if dashboard.total_entradas else 0 %}
+                {% set sai = dashboard.total_saidas[0].total if dashboard.total_saidas else 0 %}
+                <p class="valor-entrada">+ Ganhos: <strong>R$ {{ "%.2f"|format(ent) }}</strong></p>
+                <p class="valor-saida">- Gastos: <strong>R$ {{ "%.2f"|format(sai) }}</strong></p>
+                <hr style="border:0; border-top: 1px solid #eee; margin: 15px 0;">
+                <p><strong>Balanço Mensal: R$ {{ "%.2f"|format(ent - sai) }}</strong></p>
+            </div>
+            <div class="stat-box">
+                <h3>Gastos por Categoria</h3>
+                {% for cat in dashboard.ranking_categorias %}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>{{ cat.icone }} {{ cat._id }}</span>
+                        <strong>R$ {{ "%.2f"|format(cat.total_gasto) }}</strong>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Histórico de Transações</h2>
+            <table>
+                <thead>
+                    <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th style="text-align:center;">Ações</th></tr>
+                </thead>
+                <tbody>
+                    {% for t in transacoes %}
+                    <tr>
+                        <td>{{ t.data.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ t.descricao }}</td>
+                        <td>{{ t.categoria.icone }} {{ t.categoria.nome }}</td>
+                        <td class="{{ 'valor-saida' if t.tipo == 'saída' else 'valor-entrada' }}">
+                            {{ '-' if t.tipo == 'saída' else '+' }} R$ {{ "%.2f"|format(t.valor) }}
+                        </td>
+                        <td style="text-align:center;">
+                            <button class="btn-action" onclick="preencherEdicao('{{t._id}}','{{t.descricao}}','{{t.valor}}','{{t.tipo}}','{{t.categoria.nome}}','{{t.conta_id}}', '{{ t.data.strftime('%d/%m/%Y') }}')">✏️</button>
+                            <a href="/deletar/{{t._id}}" class="btn-action" onclick="return confirm('Apagar transação?')">🗑️</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script>
+        // Define data de hoje por defeito
+        document.getElementById('edit-data').valueAsDate = new Date();
+
+        function preencherEdicao(id, desc, valor, tipo, cat, conta, dataOriginal) {
+            document.getElementById('form-title').innerText = "Editar Transação";
+            document.getElementById('transacao-form').action = "/editar_completo";
+            document.getElementById('btn-submit').innerText = "Guardar Alteração";
+            document.getElementById('btn-cancel').style.display = "inline";
+            
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-desc').value = desc;
+            document.getElementById('edit-valor').value = valor;
+            document.getElementById('edit-tipo').value = tipo;
+            document.getElementById('edit-cat').value = cat;
+            document.getElementById('edit-conta').value = conta;
+
+            // Converte DD/MM/YYYY para YYYY-MM-DD
+            const partes = dataOriginal.split('/');
+            const dataFormatada = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            document.getElementById('edit-data').value = dataFormatada;
+
+            window.scrollTo({top: 250, behavior: 'smooth'});
+        }
+    </script>
+</body>
+</html>

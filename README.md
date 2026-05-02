@@ -71,7 +71,7 @@ Isso cria:
 ### 4. Execute o sistema
 
 ```bash
-python main.py
+python app.py
 ```
 
 ---
