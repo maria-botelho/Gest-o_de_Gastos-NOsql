@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Contas — Gasto Zero{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>🏦 Gestão de Contas Bancárias</h2>
+        <p>Coleção <strong>contas</strong> · referencia usuário por ObjectId · saldo via <strong>$inc</strong></p>
+    </div>
+
+    <section class="card">
+        <h2>➕ Nova Conta</h2>
+        <form action="{{ url_for('add_conta') }}" method="POST" class="form-group">
+            <input type="text" name="nome" placeholder="Nome da conta (ex: Nubank)" required style="flex:2">
+            <select name="tipo">
+                <option value="corrente">Corrente</option>
+                <option value="poupança">Poupança</option>
+                <option value="cartão">Cartão</option>
+                <option value="carteira">Carteira</option>
+                <option value="investimento">Investimento</option>
+            </select>
+            <button type="submit" class="btn-submit">Adicionar Conta</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>📋 Suas Contas no Banco de Dados</h2>
+        {% if contas %}
+        <table>
+            <thead>
+                <tr><th>Nome</th><th>Tipo</th><th>Saldo Dinâmico</th><th>ID MongoDB</th><th style="text-align:center">Ações</th></tr>
+            </thead>
+            <tbody>
+            {% for c in contas %}
+            <tr>
+                <td><strong>{{ c.nome }}</strong></td>
+                <td><span class="badge badge-purple">{{ c.tipo }}</span></td>
+                <td class="{{ 'valor-entrada' if c.saldo_exibicao >= 0 else 'valor-saida' }}">
+                    R$ {{ "%.2f"|format(c.saldo_exibicao) }}
+                </td>
+                <td style="font-size:.74rem;color:var(--txt-3);font-family:monospace">{{ c._id }}</td>
+                <td style="text-align:center">
+                    <button class="btn-action" onclick="abrirRenomear('{{ c._id }}','{{ c.nome }}')">✏️</button>
+                    <a href="{{ url_for('deletar_conta_route', id=c._id) }}"
+                       class="btn-action"
+                       onclick="return confirm('Deletar conta {{ c.nome }}? Isso não remove as transações vinculadas.')">🗑️</a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--txt-3);font-size:.85rem">Nenhuma conta cadastrada.</p>
+        {% endif %}
+    </section>
+
+    <!-- Modal de renomear -->
+    <div id="modal-rename" style="display:none;position:fixed;inset:0;background:rgba(26,21,48,.45);z-index:200;align-items:center;justify-content:center">
+        <div style="background:var(--surface);border-radius:var(--r-lg);padding:28px;width:380px;box-shadow:var(--sh)">
+            <h3 style="font-size:.95rem;font-weight:800;margin-bottom:16px">✏️ Renomear Conta</h3>
+            <form action="{{ url_for('renomear_conta_route') }}" method="POST">
+                <input type="hidden" name="conta_id" id="rename-id">
+                <label class="field-label">Novo Nome</label>
+                <input type="text" name="novo_nome" id="rename-input" required style="flex:none;width:100%;margin-bottom:14px">
+                <div style="display:flex;gap:10px">
+                    <button type="submit" class="btn btn-primary" style="flex:1">Salvar via $set</button>
+                    <button type="button" class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirRenomear(id, nome) {
+    document.getElementById('rename-id').value = id;
+    document.getElementById('rename-input').value = nome;
+    const m = document.getElementById('modal-rename');
+    m.style.display = 'flex';
+}
+function fecharModal() {
+    document.getElementById('modal-rename').style.display = 'none';
+}
+</script>
+{% endblock %}

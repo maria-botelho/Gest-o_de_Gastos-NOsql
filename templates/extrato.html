@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Extrato Detalhado — Gasto Zero{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>📄 Extrato Detalhado</h2>
+        <p>Pipeline MongoDB: <strong>$match → $lookup → $unwind → $project → $sort</strong></p>
+    </div>
+
+    <section class="filter-bar">
+        <div>
+            <label>📅 Mês de Análise:</label>
+            <input type="month" value="{{ ano }}-{{ '%02d'|format(mes) }}"
+                   onchange="window.location.href='/extrato?mes='+this.value.split('-')[1]+'&ano='+this.value.split('-')[0]">
+        </div>
+        <span>{{ registros|length }} transação(ões) · $lookup com coleção contas</span>
+    </section>
+
+    <section class="card">
+        <h2>Transações com Dados da Conta Vinculada · $lookup + $unwind</h2>
+        {% if registros %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Conta (via $lookup)</th>
+                    <th>Tipo Conta</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in registros %}
+            <tr>
+                <td>{{ r.data.strftime('%d/%m/%Y') }}</td>
+                <td>{{ r.descricao }}</td>
+                <td>{{ r.categoria_icone }} {{ r.categoria_nome }}</td>
+                <td><strong>{{ r.conta_nome }}</strong></td>
+                <td><span class="badge badge-purple">{{ r.conta_tipo }}</span></td>
+                <td class="{{ 'valor-saida' if r.tipo == 'saída' else 'valor-entrada' }}">
+                    {{ '-' if r.tipo == 'saída' else '+' }} R$ {{ "%.2f"|format(r.valor) }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--txt-3);font-size:.85rem;text-align:center;padding:20px 0">
+            Nenhuma transação encontrada para {{ mes }}/{{ ano }}.
+        </p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>🔍 Pipeline Executado no MongoDB</h2>
+        <pre style="background:var(--bg);border-radius:var(--r);padding:16px;font-size:.78rem;color:var(--txt-2);overflow-x:auto;line-height:1.6;border:1px solid var(--border)">
+[
+  { "$match": { "usuario_id": ObjectId("..."), "data": { "$gte": ISODate("{{ ano }}-{{ '%02d'|format(mes) }}-01") } } },
+
+  { "$lookup": {
+      "from": "contas",
+      "localField": "conta_id",
+      "foreignField": "_id",
+      "as": "dados_conta"
+  }},
+
+  { "$unwind": "$dados_conta" },
+
+  { "$project": {
+      "data": 1, "descricao": 1, "valor": 1, "tipo": 1,
+      "categoria_nome": "$categoria.nome",
+      "categoria_icone": "$categoria.icone",
+      "conta_nome": "$dados_conta.nome",
+      "conta_tipo": "$dados_conta.tipo"
+  }},
+
+  { "$sort": { "data": -1 } }
+]</pre>
+    </section>
+</div>
+{% endblock %}

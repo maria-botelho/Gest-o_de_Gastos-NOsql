@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Gestão de Gastos</title>
+    <link rel="shortcut icon" href="favicon.ico" type="C:\Users\carol\Gest-o_de_Gastos-NOsql\static\logo.svg">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="auth-page">
+        <div class="auth-box">
+            <div class="auth-logo">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+                    <rect width="40" height="40" rx="8" fill="#1a3a28"/>
+                    <text x="20" y="28" font-size="22" text-anchor="middle" fill="white">₢</text>
+                </svg>
+                <span>Gestão de Gastos</span>
+            </div>
+
+            <h2>Acesse sua conta</h2>
+
+            {% if erro %}
+            <div class="erro">{{ erro }}</div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="auth-campo">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="seu@email.com" required>
+                </div>
+
+                <div class="auth-campo">
+                    <label for="senha">Senha</label>
+                    <input type="password" id="senha" name="senha" placeholder="Sua senha" required>
+                </div>
+
+                <button type="submit" class="btn-auth">Entrar</button>
+            </form>
+
+            <div class="auth-link">
+                Não tem conta? <a href="{{ url_for('cadastro') }}">Cadastre-se</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

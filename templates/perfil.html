@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Perfil — Gasto Zero{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>👤 Perfil do Utilizador</h2>
+        <p>Gerencie seus dados pessoais e visualize estatísticas</p>
+    </div>
+
+    <div class="stat-pills">
+        <div class="stat-pill">
+            <div class="pill-val {{ 'valor-entrada' if saldo_total >= 0 else 'valor-saida' }}">R$ {{ "%.0f"|format(saldo_total) }}</div>
+            <div class="pill-label">Saldo Total Acumulado</div>
+        </div>
+        <div class="stat-pill">
+            <div class="pill-val">{{ total_transacoes }}</div>
+            <div class="pill-label">Transações no Banco</div>
+        </div>
+        <div class="stat-pill">
+            <div class="pill-val">{{ contas|length }}</div>
+            <div class="pill-label">Contas Cadastradas</div>
+        </div>
+    </div>
+
+    <section class="card">
+        <h2>✏️ Editar Dados Pessoais</h2>
+        <form action="{{ url_for('atualizar_perfil') }}" method="POST">
+            <div class="form-row cols-2">
+                <div>
+                    <label class="field-label">Nome Completo</label>
+                    <input type="text" name="nome" value="{{ usuario.nome }}" required style="flex:none;width:100%">
+                </div>
+                <div>
+                    <label class="field-label">E-mail</label>
+                    <input type="email" name="email" value="{{ usuario.email }}" required style="flex:none;width:100%">
+                </div>
+            </div>
+            <div style="margin-top:4px">
+                <label class="field-label">ID MongoDB (_id)</label>
+                <input type="text" value="{{ usuario._id }}" disabled style="flex:none;width:100%;opacity:.55;cursor:not-allowed">
+            </div>
+            <div style="margin-top:14px">
+                <button type="submit" class="btn btn-primary">💾 Salvar Alterações</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>📅 Metas Mensais (documento aninhado · $push/$pull)</h2>
+        {% if usuario.metas_mensais %}
+        <table>
+            <thead><tr><th>Categoria</th><th>Limite (R$)</th><th>Mês/Ano</th><th style="text-align:center">Ação</th></tr></thead>
+            <tbody>
+            {% for m in usuario.metas_mensais %}
+            <tr>
+                <td>{{ m.categoria }}</td>
+                <td>R$ {{ "%.2f"|format(m.valor_limite) }}</td>
+                <td>{{ '%02d'|format(m.mes) }}/{{ m.ano }}</td>
+                <td style="text-align:center">
+                    <form action="{{ url_for('remover_meta') }}" method="POST" style="display:inline">
+                        <input type="hidden" name="categoria" value="{{ m.categoria }}">
+                        <input type="hidden" name="mes" value="{{ m.mes }}">
+                        <input type="hidden" name="ano" value="{{ m.ano }}">
+                        <button type="submit" class="btn-action" onclick="return confirm('Remover meta via $pull?')">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--txt-3);font-size:.85rem">Nenhuma meta cadastrada. Vá em <a href="{{ url_for('metas') }}" style="color:var(--p)">Metas Mensais</a> para adicionar.</p>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <h2>🏦 Minhas Contas</h2>
+        {% if contas %}
+        <table>
+            <thead><tr><th>Nome</th><th>Tipo</th><th>Saldo</th></tr></thead>
+            <tbody>
+            {% for c in contas %}
+            <tr>
+                <td>{{ c.nome }}</td>
+                <td><span class="badge badge-purple">{{ c.tipo }}</span></td>
+                <td class="{{ 'valor-entrada' if c.saldo >= 0 else 'valor-saida' }}">R$ {{ "%.2f"|format(c.saldo) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        <div style="margin-top:12px">
+            <a href="{{ url_for('gerir_contas') }}" class="btn btn-ghost btn-sm">🏦 Gerir Contas</a>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2 style="color:var(--red)">⚠️ Informações do Documento MongoDB</h2>
+        <table>
+            <thead><tr><th>Campo</th><th>Valor</th><th>Tipo MongoDB</th></tr></thead>
+            <tbody>
+                <tr><td><code>_id</code></td><td>{{ usuario._id }}</td><td><span class="badge badge-purple">ObjectId</span></td></tr>
+                <tr><td><code>nome</code></td><td>{{ usuario.nome }}</td><td><span class="badge badge-purple">String</span></td></tr>
+                <tr><td><code>email</code></td><td>{{ usuario.email }}</td><td><span class="badge badge-purple">String</span></td></tr>
+                <tr><td><code>saldo_total</code></td><td>R$ {{ "%.2f"|format(usuario.saldo_total) }}</td><td><span class="badge badge-purple">Double</span></td></tr>
+                <tr><td><code>metas_mensais</code></td><td>{{ usuario.metas_mensais|length }} item(s)</td><td><span class="badge badge-orange">Array (Embedded)</span></td></tr>
+                <tr><td><code>criado_em</code></td><td>{{ usuario.criado_em.strftime('%d/%m/%Y %H:%M') if usuario.criado_em else '—' }}</td><td><span class="badge badge-purple">Date</span></td></tr>
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

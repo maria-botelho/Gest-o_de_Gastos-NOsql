@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Metas Mensais — Gasto Zero{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>🎯 Metas Mensais</h2>
+        <p>Armazenadas como array embutido no documento do usuário · operadores <strong>$push</strong> e <strong>$pull</strong></p>
+    </div>
+
+    <section class="card">
+        <h2>➕ Adicionar Meta <span class="badge badge-green" style="vertical-align:middle;font-size:.7rem">$push no array metas_mensais</span></h2>
+        <form action="{{ url_for('add_meta') }}" method="POST" class="form-group">
+            <select name="categoria" style="flex:2">
+                {% for cat in categorias %}
+                <option value="{{ cat.nome }}">{{ cat.icone }} {{ cat.nome }}</option>
+                {% endfor %}
+            </select>
+            <input type="number" name="valor_limite" step="0.01" placeholder="Limite R$" required>
+            <input type="number" name="mes" value="{{ hoje.month }}" min="1" max="12" placeholder="Mês">
+            <input type="number" name="ano" value="{{ hoje.year }}" min="2020" max="2030" placeholder="Ano">
+            <button type="submit" class="btn-submit">Adicionar Meta</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>📊 Metas do Mês Atual vs Gastos Reais</h2>
+        {% if usuario.metas_mensais %}
+        {% set metas_mes = usuario.metas_mensais | selectattr('mes', 'equalto', hoje.month) | selectattr('ano', 'equalto', hoje.year) | list %}
+        {% if metas_mes %}
+        <table>
+            <thead>
+                <tr><th>Categoria</th><th>Limite</th><th>Gasto Real</th><th>Progresso</th><th style="text-align:center">Remover</th></tr>
+            </thead>
+            <tbody>
+            {% for m in metas_mes %}
+            {% set gasto = gastos_cat.get(m.categoria, 0) %}
+            {% set pct = [(gasto / m.valor_limite * 100), 100] | min if m.valor_limite > 0 else 0 %}
+            <tr>
+                <td><strong>{{ m.categoria }}</strong></td>
+                <td>R$ {{ "%.2f"|format(m.valor_limite) }}</td>
+                <td class="{{ 'valor-saida' if gasto > m.valor_limite else 'valor-entrada' if gasto > 0 else '' }}">
+                    R$ {{ "%.2f"|format(gasto) }}
+                </td>
+                <td style="min-width:140px">
+                    <div class="progress-wrap">
+                        <span style="font-size:.75rem;color:var(--txt-3)">{{ "%.0f"|format(pct) }}%</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill {{ 'over' if gasto > m.valor_limite else 'warn' if pct > 75 else '' }}"
+                                 style="width:{{ pct }}%"></div>
+                        </div>
+                    </div>
+                </td>
+                <td style="text-align:center">
+                    <form action="{{ url_for('remover_meta') }}" method="POST" style="display:inline">
+                        <input type="hidden" name="categoria" value="{{ m.categoria }}">
+                        <input type="hidden" name="mes" value="{{ m.mes }}">
+                        <input type="hidden" name="ano" value="{{ m.ano }}">
+                        <button type="submit" class="btn-action" onclick="return confirm('Remover via $pull?')">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--txt-3);font-size:.85rem">Sem metas para {{ hoje.month }}/{{ hoje.year }}. Adicione acima.</p>
+        {% endif %}
+
+        {% if usuario.metas_mensais | length > 0 %}
+        <h2 style="margin-top:20px">📅 Todas as Metas Cadastradas</h2>
+        <table>
+            <thead><tr><th>Categoria</th><th>Limite</th><th>Mês/Ano</th><th style="text-align:center">Remover</th></tr></thead>
+            <tbody>
+            {% for m in usuario.metas_mensais %}
+            <tr>
+                <td>{{ m.categoria }}</td>
+                <td>R$ {{ "%.2f"|format(m.valor_limite) }}</td>
+                <td>{{ '%02d'|format(m.mes) }}/{{ m.ano }}</td>
+                <td style="text-align:center">
+                    <form action="{{ url_for('remover_meta') }}" method="POST" style="display:inline">
+                        <input type="hidden" name="categoria" value="{{ m.categoria }}">
+                        <input type="hidden" name="mes" value="{{ m.mes }}">
+                        <input type="hidden" name="ano" value="{{ m.ano }}">
+                        <button type="submit" class="btn-action">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        {% else %}
+        <p style="color:var(--txt-3);font-size:.85rem">Nenhuma meta cadastrada ainda. Adicione uma acima usando <strong>$push</strong>.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

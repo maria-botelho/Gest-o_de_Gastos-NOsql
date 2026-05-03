@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gasto Zero & Co.{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Gasto Zero">
+        <div>
+            <div class="sidebar-logo-name">Gasto Zero</div>
+            <div class="sidebar-logo-sub">Compania Financeira</div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-label">Principal</div>
+        <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+            <span class="nav-icon">📊</span> Dashboard
+        </a>
+        <a href="{{ url_for('extrato') }}" class="nav-item {% if request.endpoint == 'extrato' %}active{% endif %}">
+            <span class="nav-icon">📄</span> Extrato
+        </a>
+        <a href="{{ url_for('metas') }}" class="nav-item {% if request.endpoint == 'metas' %}active{% endif %}">
+            <span class="nav-icon">🎯</span> Metas Mensais
+        </a>
+
+        <div class="nav-label">Gestão</div>
+        <a href="{{ url_for('gerir_contas') }}" class="nav-item {% if request.endpoint == 'gerir_contas' %}active{% endif %}">
+            <span class="nav-icon">🏦</span> Contas
+        </a>
+        <a href="{{ url_for('perfil') }}" class="nav-item {% if request.endpoint == 'perfil' %}active{% endif %}">
+            <span class="nav-icon">👤</span> Perfil
+        </a>
+        <a href="{{ url_for('cadastro_usuario') }}" class="nav-item {% if request.endpoint == 'cadastro_usuario' %}active{% endif %}">
+            <span class="nav-icon">➕</span> Novo Usuário
+        </a>
+    </nav>
+
+    {% if usuario is defined and usuario %}
+    <div class="sidebar-user">
+        <div class="sidebar-avatar">{{ usuario.nome[0] | upper }}</div>
+        <div>
+            <div class="sidebar-user-name">{{ usuario.nome }}</div>
+            <div class="sidebar-user-role">Utilizador Ativo</div>
+        </div>
+    </div>
+    {% endif %}
+</aside>
+
+<div class="main-wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-wrap">
+        {% for cat, msg in messages %}
+        <div class="flash {{ cat }}">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="logo">
+                <span>Gasto Zero &amp; Co. — Compania Financeira</span>
+            </div>
+            <div class="footer-db">
+                MongoDB Conectado · financeiro_app
+            </div>
+            <div class="footer-info">
+                <strong>Stack:</strong> Python · Flask · MongoDB (NoSQL) · PyMongo<br>
+                Operadores: <strong>$inc · $push · $pull · $lookup · $unwind · $facet</strong>
+            </div>
+        </div>
+    </footer>
+</div>
+
+</body>
+</html>
